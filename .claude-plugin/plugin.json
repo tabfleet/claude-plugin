@@ -8,6 +8,7 @@
     "url": "https://tabfleet.com"
   },
   "homepage": "https://tabfleet.com/docs",
+  "repository": "https://github.com/tabfleet/claude-plugin",
   "privacyPolicyUrl": "https://tabfleet.com/privacy",
   "license": "MIT",
   "keywords": ["browser", "web automation", "live view", "tabfleet"]
