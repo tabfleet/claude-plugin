@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "tabfleet": {
+      "type": "http",
+      "url": "https://tabfleet.com/"
+    }
+  }
+}

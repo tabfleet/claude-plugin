@@ -1,0 +1,13 @@
+{
+  "name": "tabfleet-browser",
+  "displayName": "Tabfleet Browser",
+  "version": "1.0.0",
+  "description": "Give Claude a temporary cloud browser to inspect pages, complete authorized web tasks, and share a live view.",
+  "author": {
+    "name": "Dalton Solutions, LLC.",
+    "url": "https://tabfleet.com"
+  },
+  "homepage": "https://tabfleet.com/docs",
+  "license": "MIT",
+  "keywords": ["browser", "web automation", "live view", "tabfleet"]
+}
