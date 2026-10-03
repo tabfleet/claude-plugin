@@ -4,7 +4,7 @@ Tabfleet Browser gives Claude a temporary cloud browser through Tabfleet's remot
 
 ## Connect and use
 
-Install the plugin and connect **Tabfleet** on its Connectors tab. Tabfleet asks you to sign in with Google, select a workspace, and approve either view-only or browser-control access. A new workspace has a trial allowance; `get_usage` shows the current balance and limits. The plugin contains no credentials, local executable, or install script. Its `.mcp.json` connects only to `https://tabfleet.com/` using Streamable HTTP and OAuth.
+Install the plugin and connect **Tabfleet** on its Connectors tab. Tabfleet asks you to sign in with Google, select a workspace, and approve either view-only or browser-control access. A new workspace has a trial allowance; `get_usage` shows the current balance and limits. The plugin contains no credentials, local executable, hook, or install script. Its `.mcp.json` connects only to `https://tabfleet.com/` using Streamable HTTP and OAuth.
 
 Try these prompts:
 
