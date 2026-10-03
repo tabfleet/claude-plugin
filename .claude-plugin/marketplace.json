@@ -5,14 +5,9 @@
     "url": "https://tabfleet.com"
   },
   "metadata": {
-    "description": "Tabfleet cloud browsers for Claude"
+    "description": "Tabfleet add-ons for Claude Code. Install Tabfleet Browser itself from the Anthropic plugin directory."
   },
   "plugins": [
-    {
-      "name": "tabfleet-browser",
-      "source": "./",
-      "description": "Give Claude a temporary cloud browser to inspect pages, complete authorized web tasks, and share a live view."
-    },
     {
       "name": "tabfleet-fleet",
       "source": {
