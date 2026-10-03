@@ -12,6 +12,14 @@
       "name": "tabfleet-browser",
       "source": "./",
       "description": "Give Claude a temporary cloud browser to inspect pages, complete authorized web tasks, and share a live view."
+    },
+    {
+      "name": "tabfleet-fleet",
+      "source": {
+        "source": "github",
+        "repo": "tabfleet/claude-code-fleet"
+      },
+      "description": "Claude Code pane, status line and commands for watching and closing your Tabfleet cloud browsers."
     }
   ]
 }
