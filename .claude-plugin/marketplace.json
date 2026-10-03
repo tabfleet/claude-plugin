@@ -1,0 +1,17 @@
+{
+  "name": "tabfleet",
+  "owner": {
+    "name": "Dalton Solutions, LLC.",
+    "url": "https://tabfleet.com"
+  },
+  "metadata": {
+    "description": "Tabfleet cloud browsers for Claude"
+  },
+  "plugins": [
+    {
+      "name": "tabfleet-browser",
+      "source": "./",
+      "description": "Give Claude a temporary cloud browser to inspect pages, complete authorized web tasks, and share a live view."
+    }
+  ]
+}
