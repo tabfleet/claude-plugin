@@ -40,3 +40,38 @@ test('pane lists active browsers and Close calls close_browser', async ($, on) =
     await ui.unmount()
   }
 })
+
+const PNG_1x1 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
+
+test('Watch asks for a PNG screenshot and draws it inline', async ($, on) => {
+  mock.clock(on, { now: Date.now() })
+  const asked: unknown[] = []
+  on('ui.open', () => ({ value: { isPlaced: true as const } }))
+  on('ui.status', () => ({ value: undefined }))
+  on('mcp.connect', () => ({ value: { isConnected: true as const, server: 'plugin:tabfleet-browser:tabfleet' } }))
+  on('mcp.call', ($, e) => {
+    if (e.tool === 'list_sessions')
+      return text({
+        sessions: [{ id: ACTIVE, status: 'active', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 600_000).toISOString() }],
+      })
+    if (e.tool === 'get_usage') return text({ activeSessions: 1, budget: { availableSeconds: 6000 } })
+    if (e.tool === 'browser_screenshot') {
+      asked.push(e.args)
+      return { value: { content: [{ type: 'image' as const, data: PNG_1x1, mimeType: 'image/png' }], isError: false } }
+    }
+    return text({})
+  })
+
+  const ui = await $.ui.mount({
+    plugin: 'tabfleet-browser',
+    surface: 'terminal',
+    component: 'Pane',
+    requestId: 'tabfleet-browser',
+    props: { title: 'Tabfleet', isFocused: true, bodyColumns: 80, placement: 'dock', scroll: { offset: 0, bodyRows: 30 }, view: {} },
+  })
+  await ui.press({ key: 'refresh' })
+  await ui.press({ key: `watch-${ACTIVE}` })
+  expect(asked).toEqual([{ sessionId: ACTIVE, format: 'png' }])
+  expect(await ui.find({ type: 'Image' })).toBeDefined()
+  await ui.unmount()
+})

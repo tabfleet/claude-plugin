@@ -6,7 +6,6 @@ import type { FleetSession, FleetSnapshot, FleetUsage, FleetWatch } from '../typ
 const PANE = 'tabfleet-browser'
 const POLL_MS = 20_000
 const FRAME_MS = 1_500
-const FRAME_DIR = '/tmp/tabfleet-fleet'
 // Tool names as the session spells them: mcp__tabfleet__*, or mcp__plugin_tabfleet-browser_tabfleet__* when this plugin ships the server.
 const TABFLEET = /^mcp__(?:plugin_[^_]+_)?tabfleet__/
 const LAUNCH = /^mcp__(?:plugin_[^_]+_)?tabfleet__launch_browser$/
@@ -27,8 +26,6 @@ const watch = atom({ plugin: 'tabfleet-browser', key: 'watch' } as const, {
 
 let isCapturing = false
 let server: string | undefined
-// Live watching converts screenshots with macOS sips; elsewhere the pane offers live-view links only.
-let canWatch = false
 
 // This plugin's own tabfleet server, under whatever name the session runs it.
 async function call($: EngineInterface, tool: string, args?: Record<string, unknown>) {
@@ -41,54 +38,39 @@ async function call($: EngineInterface, tool: string, args?: Record<string, unkn
   return $.mcp.call(server, tool, args)
 }
 
-// The screenshot as inline base64, or as a local file the host saved it to.
-function imageSource(shot: McpToolResult): { base64: string } | { file: string } | undefined {
-  for (const b of shot.content) {
-    const res = (b.resource ?? {}) as Record<string, unknown>
-    const src = (b.source ?? {}) as Record<string, unknown>
-    const data = b.data ?? b.blob ?? res.blob ?? src.data
-    if (typeof data === 'string' && data.length > 0) return { base64: data }
-    const uri = b.uri ?? res.uri ?? b.path ?? b.file
-    if (typeof uri === 'string' && (uri.startsWith('file://') || uri.startsWith('/')))
-      return { file: uri.startsWith('file://') ? decodeURIComponent(new URL(uri).pathname) : uri }
-  }
-  // Fallback: the host's note naming where it saved the image, "[Image: source: /path.jpg]".
-  for (const b of shot.content) {
-    const saved = typeof b.text === 'string' ? /\[Image: source: (\/[^\]]+)\]/.exec(b.text)?.[1] : undefined
-    if (saved) return { file: saved }
-  }
+// PNG frames reach the pane inline; the Image element takes at most 2 MiB decoded.
+const MAX_PNG_BASE64 = Math.floor((2 * 1024 * 1024 * 4) / 3)
+const B64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 
-  return undefined
+// Width and height from the PNG header: bytes 16-23 of the file, big-endian.
+function pngSize(base64: string) {
+  const bytes: number[] = []
+  for (let i = 0; i + 4 <= 32; i += 4) {
+    const n = [0, 1, 2, 3].reduce((acc, k) => (acc << 6) | B64.indexOf(base64[i + k]!), 0)
+    bytes.push((n >> 16) & 255, (n >> 8) & 255, n & 255)
+  }
+  const u32 = (o: number) => ((bytes[o]! << 24) | (bytes[o + 1]! << 16) | (bytes[o + 2]! << 8) | bytes[o + 3]!) >>> 0
+
+  return { width: u32(16), height: u32(20) }
 }
 
-// One frame: screenshot (JPEG) -> temp file -> PNG via macOS sips -> Image reads the file.
+// One frame: the server's PNG screenshot, drawn as is.
 async function capture($: EngineInterface) {
   const w = await read($, watch)
   if (!w.sessionId || isCapturing) return
   isCapturing = true
   try {
-    const shot = await call($, 'browser_screenshot', { sessionId: w.sessionId })
-    const source = imageSource(shot)
-    if (!source) {
-      const shape = shot.content.map(b => `${b.type}{${Object.keys(b).join(',')}}`).join(' ')
-      throw new Error(`no screenshot (${shot.isError ? 'error: ' : ''}${shape || 'empty'})`)
-    }
+    const shot = await call($, 'browser_screenshot', { sessionId: w.sessionId, format: 'png' })
+    const image = shot.content.find(b => b.type === 'image')
+    if (shot.isError || typeof image?.data !== 'string') throw new Error('No screenshot came back.')
+    if (image.mimeType !== 'image/png') throw new Error('This Tabfleet server sends JPEG only; watching needs PNG screenshots.')
+    if (image.data.length > MAX_PNG_BASE64) throw new Error('Screenshot too large to draw.')
 
+    const png = image.data
+    const { width, height } = pngSize(png)
     const generation = (w.frame?.generation ?? 0) + 1
-    const path = `${FRAME_DIR}/${w.sessionId}-${generation % 2}.png`
-    const convert = 'sips -s format png -Z 1280 "$1/in.jpg" --out "$2" >/dev/null && sips -g pixelWidth -g pixelHeight "$2"'
-    const ran = await $.process.run(
-      'base64' in source
-        ? ['/bin/sh', '-c', `mkdir -p "$1" && base64 -D > "$1/in.jpg" && ${convert}`, 'sh', FRAME_DIR, path]
-        : ['/bin/sh', '-c', `mkdir -p "$1" && cp "$3" "$1/in.jpg" && ${convert}`, 'sh', FRAME_DIR, path, source.file],
-      { stdin: 'base64' in source ? source.base64 : undefined, timeoutMs: 10_000 },
-    )
-    if (ran.exitCode !== 0) throw new Error(ran.stderr.trim() || 'sips failed')
-
-    const width = Number(/pixelWidth: (\d+)/.exec(ran.stdout)?.[1] ?? 1280)
-    const height = Number(/pixelHeight: (\d+)/.exec(ran.stdout)?.[1] ?? 720)
     await update($, watch, cur =>
-      cur.sessionId === w.sessionId ? { ...cur, frame: { path, generation, width, height }, error: null } : cur,
+      cur.sessionId === w.sessionId ? { ...cur, frame: { png, generation, width, height }, error: null } : cur,
     )
   } catch (err) {
     await update($, watch, cur => ({ ...cur, error: String((err as Error).message ?? err) }))
@@ -173,10 +155,6 @@ async function close($: EngineInterface, sessionId: string) {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    void $.process.run(['uname', '-s'], { timeoutMs: 5_000 }).then(
-      r => (canWatch = r.stdout.trim() === 'Darwin'),
-      () => undefined,
-    )
     await $.command.register({ name: 'fleet', description: 'Open the Tabfleet browser fleet pane' })
     await $.command.register({ name: 'fleet-watch', description: 'Watch the newest active Tabfleet browser in the fleet pane' })
     await $.command.register({ name: 'fleet-close-all', description: 'Close every active Tabfleet browser' })
@@ -199,8 +177,6 @@ export const register: Register = on => {
   })
 
   on('command.run', { command: 'fleet-watch' }, async ($, e) => {
-    if (!canWatch) return { text: 'Watching needs macOS (it converts screenshots with sips). Use /fleet for live-view links.' }
-
     const active = (await refresh($)).filter(isActive)
     const newest = active[0]
     if (!newest) return { text: 'No active browsers to watch.' }
@@ -301,7 +277,7 @@ export const register: Register = on => {
               <Button key={`close-${x.id}`} label="Close" onPress={() => close($, x.id)} />
               {w.sessionId === x.id ? (
                 <Button key="stop" label="Stop" hotkey="s" onPress={() => stopWatching($)} />
-              ) : canWatch && (
+              ) : (
                 <Button key={`watch-${x.id}`} label="Watch" hotkey="w" onPress={() => startWatching($, x.id)} />
               )}
               {!url && (
@@ -321,7 +297,7 @@ export const register: Register = on => {
             {w.frame && Image && (
               <Image
                 key="live"
-                source={{ file: w.frame.path, format: 'png', generation: w.frame.generation }}
+                source={{ png: w.frame.png }}
                 columns={imageCols}
                 rows={imageRows}
                 alt={`Browser ${w.sessionId.slice(0, 8)} screenshot`}
