@@ -1,7 +1,7 @@
 {
   "name": "tabfleet-browser",
   "displayName": "Tabfleet Browser",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Give Claude a temporary cloud browser to inspect pages, complete authorized web tasks, and share a live view.",
   "author": {
     "name": "Dalton Solutions, LLC.",

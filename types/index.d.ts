@@ -18,7 +18,7 @@ export type FleetSnapshot = {
 
 export type FleetWatch = {
   sessionId: string | null
-  frame: { path: string; generation: number; width: number; height: number } | null
+  frame: { png: string; generation: number; width: number; height: number } | null
   error: string | null
 }
 
