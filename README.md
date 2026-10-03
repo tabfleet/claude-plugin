@@ -14,16 +14,16 @@ Try these prompts:
 
 ## Install in Claude Code
 
-```
-/plugin marketplace add tabfleet/claude-plugin
-/plugin install tabfleet-browser@tabfleet
-```
-
-Then run `/mcp`, choose the Tabfleet server, and sign in.
+Run `/plugin`, search for "tabfleet", and install **Tabfleet Browser** from the Anthropic Directory. Then run `/mcp`, choose the Tabfleet server, and sign in.
 
 ## Fleet pane in Claude Code
 
-For a pane that lists your browsers, shows their screens, and closes them when a session ends, install the separate [Tabfleet Fleet Pane](https://github.com/tabfleet/claude-code-fleet) plugin: `/plugin install tabfleet-fleet@tabfleet`.
+For a pane that lists your browsers, shows their screens, and closes them when a session ends, add the [Tabfleet Fleet Pane](https://github.com/tabfleet/claude-code-fleet). It uses Tabfleet Browser's connection, so there's no second sign-in:
+
+```
+/plugin marketplace add tabfleet/claude-plugin
+/plugin install tabfleet-fleet@tabfleet
+```
 
 Browser-control access also allows Claude to click and fill pages for tasks you authorize. A live view link is a temporary bearer credential; anyone with the link can see its browser, and a control link also permits input. Page contents and actions travel through Tabfleet's browser service. Tabfleet does not retain screenshots, snapshots, or live streams as application records; it keeps account, authorization, session, and usage records as described in the [privacy notice](https://tabfleet.com/privacy). Websites opened in the browser receive traffic under their own policies. Browser sessions are temporary and consume minutes from the workspace allowance.
 
