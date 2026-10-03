@@ -12,6 +12,15 @@ Try these prompts:
 - “Check this site's contact form and tell me which fields it requires. Don't submit it.”
 - “Open a browser on this page and give me a live view link so I can watch.”
 
+## Install in Claude Code
+
+```
+/plugin marketplace add tabfleet/claude-plugin
+/plugin install tabfleet-browser@tabfleet
+```
+
+Then run `/mcp`, choose the Tabfleet server, and sign in.
+
 ## Fleet pane in Claude Code
 
 In Claude Code the plugin adds a fleet pane and commands on top of the connector:
